@@ -59,7 +59,7 @@
 
     <section class="card result" id="result" hidden>
       <div class="result-main" id="result-main"></div>
-      <div class="test-warning" id="test-warning" role="alert" hidden></div>
+      <div class="notices" id="notices" role="alert" hidden></div>
       <div class="chips" id="chips" role="tablist"></div>
       <div class="list" id="list"></div>
     </section>
@@ -72,6 +72,7 @@
           <li><code>[AUTOCOMMIT]…</code>, <code>Revert…</code> → <b>skip</b></li>
           <li><code>[test] …</code> → <b>test</b>: в строку задач не попадают, но выводится предупреждение.</li>
           <li><code>[ABC-123]…</code> (можно несколько подряд) → <b>main</b></li>
+          <li><code>Revert "X"</code> связывается с более старым коммитом <code>X</code> в этом же диапазоне (по сообщению), <code>Reapply "X"</code> — с <code>Revert "X"</code>. Отревертенные коммиты зачёркнуты.</li>
           <li>Всё остальное → <b>unknown</b>: результат не выдаётся, пока такие коммиты есть.</li>
         </ul>
       </details>

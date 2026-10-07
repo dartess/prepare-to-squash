@@ -220,18 +220,20 @@ button { font: inherit; cursor: pointer; }
   .date { text-align: left; }
 }
 
-.result-main:has(+ .test-warning:not([hidden])) { margin-bottom: 8px; }
-.test-warning {
+.result-main:has(+ .notices:not([hidden])) { margin-bottom: 8px; }
+.notices { display: grid; gap: 8px; margin-bottom: 16px; }
+.notices[hidden] { display: none; }
+.notice {
   display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
-  margin-bottom: 16px; padding: 10px 12px 10px 14px; border-radius: 12px;
+  padding: 10px 12px 10px 14px; border-radius: 12px;
   background: var(--warn-soft); color: var(--text);
   border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent);
   font-size: 14px;
 }
-.test-warning[hidden] { display: none; }
-.test-warning .body { flex: 1; min-width: 0; }
-.test-warning b { color: var(--warn); }
-.test-warning .btn.ghost { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 40%, transparent); }
+.notice .body { flex: 1; min-width: 0; }
+.notice b { color: var(--warn); }
+.notice .mono { font-family: var(--mono); overflow-wrap: anywhere; }
+.notice .btn.ghost { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 40%, transparent); }
 .warn-icon {
   flex: none; width: 22px; height: 22px; border-radius: 50%;
   background: var(--warn); color: var(--card); display: grid; place-items: center;
@@ -240,3 +242,15 @@ button { font: inherit; cursor: pointer; }
 .dot.test { background: var(--warn); }
 .badge.test { color: var(--warn); background: var(--warn-soft); }
 .row.test .msg { color: var(--muted); }
+
+.dot.reverted { background: var(--err); }
+.msg .pill.reverted { color: var(--err); background: var(--err-soft); }
+.row.undone .text { text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--err) 70%, transparent); opacity: .65; }
+.link { font-size: 13px; margin-top: 4px; color: var(--muted); }
+.link .ref { color: var(--text); }
+.link.missing { color: var(--warn); }
+.link.undone { color: var(--err); }
+.link .hash { font-family: var(--mono); border: 0; background: none; color: var(--accent); padding: 0; text-decoration: underline dotted; }
+.row { scroll-margin: 80px; }
+.row.flash { animation: flash 1.2s ease-out; }
+@keyframes flash { 0%, 30% { box-shadow: 0 0 0 3px var(--accent); } 100% { box-shadow: 0 0 0 3px transparent; } }

@@ -64,3 +64,26 @@ test('garbage lines are reported', () => {
   assert.equal(r.invalid.length, 1);
   assert.equal(r.ok, false);
 });
+
+test('links reverts to reverted commits', () => {
+  const h = (n) => String(n).repeat(40).slice(0, 40);
+  const r = analyze([
+    T(h(5), 'Reapply "[ABC-1] a"'),
+    T(h(4), 'Revert "[ABC-1] a"'),
+    T(h(3), 'Revert "[ABC-2] b"'),
+    T(h(2), '[ABC-2] b'),
+    T(h(1), '[ABC-1] a'),
+    T(h(6), 'Revert "[ABC-9] not here"'),
+  ].join('\n'));
+  const get = (n) => r.commits.find((c) => c.hash === h(n));
+  assert.equal(get(4).reverts, h(1));
+  assert.equal(get(5).reverts, h(4));
+  assert.equal(get(3).reverts, h(2));
+  assert.equal(get(6).reverts, undefined);
+  assert.equal(get(6).revertsSubject, '[ABC-9] not here');
+  assert.equal(get(1).undone, false); // reverted, then reapplied
+  assert.equal(get(4).undone, true);
+  assert.equal(get(2).undone, true);
+  assert.deepEqual(r.undoneTasks, ['ABC-2']);
+  assert.equal(r.result, '[ABC-1][ABC-2]');
+});

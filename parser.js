@@ -43,6 +43,41 @@ export function classify(message) {
   return { category: 'unknown', reason: 'unknown' };
 }
 
+const REVERT = /^Revert "(.*)"$/s;
+
+// What a commit undoes, judged by subject only (the body with the hash is not in the log format).
+// `Revert "S"` undoes S; git names a revert of `Revert "S"` as `Reapply "S"`.
+export function revertTarget(subject) {
+  const s = subject.trim();
+  const revert = s.match(REVERT);
+  if (revert) return revert[1].trim();
+  const reapply = s.match(REAPPLY);
+  if (reapply) return `Revert "${reapply[1].trim()}"`;
+  return null;
+}
+
+// Links reverts to the commits they undo. Log is newest first, so the undone commit
+// is looked up among older (later) entries first; each commit can be undone once.
+export function linkReverts(commits) {
+  commits.forEach((c, i) => {
+    const target = revertTarget(c.subject);
+    if (target === null) return;
+    c.revertsSubject = target;
+    const free = (x) => x.subject.trim() === target && !x.revertedBy;
+    const undone = commits.slice(i + 1).find(free) ?? commits.slice(0, i).reverse().find(free);
+    if (!undone) return;
+    c.reverts = undone.hash;
+    undone.revertedBy = c.hash;
+  });
+  const byHash = new Map(commits.map((c) => [c.hash, c]));
+  const isUndone = (c, seen = new Set()) => {
+    if (!c.revertedBy || seen.has(c.hash)) return false;
+    seen.add(c.hash);
+    return !isUndone(byHash.get(c.revertedBy), seen);
+  };
+  for (const c of commits) c.undone = isUndone(c);
+}
+
 export function compareTasks(a, b) {
   const [pa, na] = a.split('-');
   const [pb, nb] = b.split('-');
@@ -63,16 +98,20 @@ export function analyze(text) {
     commits.push({ ...parsed, message, reapplied, ...classify(message) });
   });
 
+  linkReverts(commits);
+
   const by = (c) => commits.filter((x) => x.category === c);
   const main = by('main');
   const skip = by('skip');
   const test = by('test');
   const unknown = by('unknown');
   const tasks = [...new Set(main.flatMap((c) => c.tasks))].sort(compareTasks);
+  // Tasks whose every main commit ends up reverted — likely nothing to carry over.
+  const undoneTasks = tasks.filter((t) => main.every((c) => !c.tasks.includes(t) || c.undone));
   const ok = commits.length > 0 && unknown.length === 0 && invalid.length === 0;
 
   return {
-    commits, main, skip, test, unknown, invalid, tasks, ok,
+    commits, main, skip, test, unknown, invalid, tasks, undoneTasks, ok,
     result: ok ? tasks.map((t) => `[${t}]`).join('') : '',
   };
 }
