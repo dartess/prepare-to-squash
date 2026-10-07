@@ -36,6 +36,7 @@ export function unwrapReapply(subject) {
 
 export function classify(message) {
   if (message.startsWith('[AUTOCOMMIT]')) return { category: 'skip', reason: 'AUTOCOMMIT' };
+  if (message.startsWith('[hotfix]')) return { category: 'skip', reason: 'hotfix' };
   const prefix = message.match(TASK_PREFIX);
   if (prefix) {
     const tasks = [...prefix[0].matchAll(TASK_TAG)].map((t) => `${t[1].toUpperCase()}-${t[2]}`);

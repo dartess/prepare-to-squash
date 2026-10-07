@@ -33,6 +33,7 @@ test('unwraps Reapply, including nested', () => {
 
 test('classification rules', () => {
   assert.equal(classify('[AUTOCOMMIT] bump').category, 'skip');
+  assert.equal(classify('[hotfix] prod crash').category, 'skip');
   assert.deepEqual(classify('[SFA-1][ab-22] x').tasks, ['SFA-1', 'AB-22']);
   assert.equal(classify('[test] smth').category, 'test');
   assert.equal(classify('[test]smth').category, 'unknown');
