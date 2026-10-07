@@ -254,3 +254,11 @@ button { font: inherit; cursor: pointer; }
 .row { scroll-margin: 80px; }
 .row.flash { animation: flash 1.2s ease-out; }
 @keyframes flash { 0%, 30% { box-shadow: 0 0 0 3px var(--accent); } 100% { box-shadow: 0 0 0 3px transparent; } }
+.msg details.body { margin-top: 4px; font-size: 12px; color: var(--muted); }
+.msg details.body summary { cursor: pointer; width: fit-content; }
+.msg details.body summary:hover { color: var(--accent); }
+.msg details.body pre {
+  margin: 6px 0 2px; padding: 8px 10px; border-radius: 8px; background: var(--field); border: 1px solid var(--line);
+  font: 12px/1.5 var(--mono); color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.link code { font-size: 12px; }

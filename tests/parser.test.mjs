@@ -8,7 +8,7 @@ const H = '0123456789abcdef0123456789abcdef01234567';
 test('command is one line', () => {
   assert.equal(
     buildCommand('target', 'source'),
-    "git --no-pager log --right-only --cherry-pick --no-merges --format='%H%x09%an%x09%ae%x09%aI%x09%s' target...source",
+    "git --no-pager log --right-only --cherry-pick --no-merges --format='%H%x09%an%x09%ae%x09%aI%x09%s%n%w(0,4,4)%b' target...source",
   );
 });
 
@@ -86,4 +86,30 @@ test('links reverts to reverted commits', () => {
   assert.equal(get(2).undone, true);
   assert.deepEqual(r.undoneTasks, ['ABC-2']);
   assert.equal(r.result, '[ABC-1][ABC-2]');
+});
+
+test('body lines attach to the commit; revert hash from body wins over subject', () => {
+  const h = (n) => String(n).repeat(40).slice(0, 40);
+  const r = analyze([
+    T(h(3), 'Revert "[ABC-1] a"'),
+    `    This reverts commit ${h(1)}.`,
+    T(h(2), '[ABC-1] a'),
+    '    second commit with the same subject',
+    '',
+    T(h(1), '[ABC-1] a'),
+    T(h(4), 'Revert "[ABC-7] gone"'),
+    '    This reverts commit abcdef1234567.',
+  ].join('\n'));
+  const get = (n) => r.commits.find((c) => c.hash === h(n));
+  assert.equal(r.invalid.length, 0);
+  assert.equal(r.commits.length, 4);
+  assert.equal(get(2).body, 'second commit with the same subject');
+  assert.equal(get(3).reverts, h(1)); // subject match would have picked h(2)
+  assert.equal(get(2).revertedBy, undefined);
+  assert.equal(get(4).revertsHash, 'abcdef1234567');
+  assert.equal(get(4).reverts, undefined);
+});
+
+test('indented line before any commit is invalid', () => {
+  assert.equal(analyze('    orphan body').invalid.length, 1);
 });

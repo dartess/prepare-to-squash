@@ -72,7 +72,7 @@
           <li><code>[AUTOCOMMIT]…</code>, <code>Revert…</code> → <b>skip</b></li>
           <li><code>[test] …</code> → <b>test</b>: в строку задач не попадают, но выводится предупреждение.</li>
           <li><code>[ABC-123]…</code> (можно несколько подряд) → <b>main</b></li>
-          <li><code>Revert "X"</code> связывается с более старым коммитом <code>X</code> в этом же диапазоне (по сообщению), <code>Reapply "X"</code> — с <code>Revert "X"</code>. Отревертенные коммиты зачёркнуты.</li>
+          <li>Ревёрты связываются с коммитами по <code>This reverts commit &lt;hash&gt;</code> из описания. Если описания нет — по сообщению: <code>Revert "X"</code> ищет коммит <code>X</code>, <code>Reapply "X"</code> — <code>Revert "X"</code>. Отревертенные коммиты зачёркнуты.</li>
           <li>Всё остальное → <b>unknown</b>: результат не выдаётся, пока такие коммиты есть.</li>
         </ul>
       </details>

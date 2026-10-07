@@ -1,6 +1,7 @@
 // Pure parsing / classification logic. No DOM here — covered by tests/parser.test.mjs.
 
-export const FORMAT = '%H%x09%an%x09%ae%x09%aI%x09%s';
+// Header line per commit, then the body indented by 4 spaces (%w) so it can't be mistaken for a header.
+export const FORMAT = '%H%x09%an%x09%ae%x09%aI%x09%s%n%w(0,4,4)%b';
 
 export function buildCommand(target, source) {
   return `git --no-pager log --right-only --cherry-pick --no-merges --format='${FORMAT}' ${target}...${source}`;
@@ -10,6 +11,8 @@ export function buildCommand(target, source) {
 const LOOSE_LINE = /^([0-9a-f]{7,40})\s+(.+?)\s+(\S+@\S+)\s+(\d{4}-\d\d-\d\dT[\d:.]+(?:Z|[+-]\d\d:?\d\d))\s+(.*)$/i;
 const HASH = /^[0-9a-f]{7,40}$/i;
 const REAPPLY = /^Reapply "(.*)"$/s;
+const BODY_LINE = /^[ \t]/;
+const REVERTS_HASH = /This reverts commit ([0-9a-f]{7,40})/i;
 const TASK_PREFIX = /^(?:\[[A-Za-z]+-\d+\])+/;
 const TASK_TAG = /\[([A-Za-z]+)-(\d+)\]/g;
 
@@ -45,8 +48,8 @@ export function classify(message) {
 
 const REVERT = /^Revert "(.*)"$/s;
 
-// What a commit undoes, judged by subject only (the body with the hash is not in the log format).
-// `Revert "S"` undoes S; git names a revert of `Revert "S"` as `Reapply "S"`.
+// What a commit undoes, judged by subject: `Revert "S"` undoes S;
+// git names a revert of `Revert "S"` as `Reapply "S"`. Used when the body has no hash.
 export function revertTarget(subject) {
   const s = subject.trim();
   const revert = s.match(REVERT);
@@ -56,10 +59,22 @@ export function revertTarget(subject) {
   return null;
 }
 
-// Links reverts to the commits they undo. Log is newest first, so the undone commit
-// is looked up among older (later) entries first; each commit can be undone once.
+// Links reverts to the commits they undo: by `This reverts commit <hash>` from the body,
+// otherwise by subject. Log is newest first, so a subject match is looked up among older
+// (later) entries first; each commit can be undone once.
 export function linkReverts(commits) {
   commits.forEach((c, i) => {
+    const hash = c.body.match(REVERTS_HASH)?.[1].toLowerCase();
+    if (hash) {
+      c.revertsHash = hash;
+      c.revertsSubject = revertTarget(c.subject) ?? '';
+      const undone = commits.find((x) => x !== c && x.hash.toLowerCase().startsWith(hash));
+      if (undone) {
+        c.reverts = undone.hash;
+        undone.revertedBy = c.hash;
+      }
+      return;
+    }
     const target = revertTarget(c.subject);
     if (target === null) return;
     c.revertsSubject = target;
@@ -89,13 +104,18 @@ export function analyze(text) {
   const invalid = [];
   text.split(/\r?\n/).forEach((raw, i) => {
     if (!raw.trim()) return;
+    if (BODY_LINE.test(raw) && commits.length) {
+      const last = commits[commits.length - 1];
+      last.body += (last.body ? '\n' : '') + raw.replace(/^ {4}/, '');
+      return;
+    }
     const parsed = parseLine(raw);
     if (!parsed) {
       invalid.push({ lineNo: i + 1, raw });
       return;
     }
     const { message, reapplied } = unwrapReapply(parsed.subject);
-    commits.push({ ...parsed, message, reapplied, ...classify(message) });
+    commits.push({ ...parsed, body: '', message, reapplied, ...classify(message) });
   });
 
   linkReverts(commits);

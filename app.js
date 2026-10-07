@@ -88,7 +88,7 @@ function revertInfo(c) {
     const verb = c.subject.trim().startsWith('Reapply') ? 'возвращает' : 'ревертит';
     lines.push(c.reverts
       ? `<div class="link">↩ ${verb} ${jump(c.reverts)} <span class="ref">${esc(lastAnalysis.byHash.get(c.reverts).subject)}</span></div>`
-      : `<div class="link missing">↩ ${verb} <span class="ref">${esc(c.revertsSubject)}</span> — коммита нет в этом диапазоне</div>`);
+      : `<div class="link missing">↩ ${verb} ${c.revertsHash ? `<code>${esc(c.revertsHash.slice(0, 10))}</code> ` : ''}<span class="ref">${esc(c.revertsSubject)}</span> — коммита нет в этом диапазоне</div>`);
   }
   if (c.revertedBy) {
     lines.push(c.undone
@@ -108,6 +108,7 @@ function commitRow(c) {
     <span class="badge ${c.category}">${c.category}</span>
     <div class="msg"><span class="text">${highlight(c.message)}</span>${pills.join('')}
       ${revertInfo(c)}
+      ${c.body ? `<details class="body"><summary>описание</summary><pre>${esc(c.body)}</pre></details>` : ''}
       <div class="meta">
         <button class="hash" type="button" data-copy="${esc(c.hash)}" title="Скопировать полный хэш">${esc(c.hash.slice(0, 10))}</button>
         <span title="${esc(c.email)}">${esc(c.name)}</span>
@@ -121,7 +122,7 @@ function invalidRow(x) {
   return `<div class="row invalid">
     <span class="badge invalid">строка ${x.lineNo}</span>
     <div class="msg"><div class="raw">${esc(x.raw)}</div>
-      <div class="meta">Не удалось разобрать: ожидается 5 полей через табуляцию</div>
+      <div class="meta">Не удалось разобрать: ожидается 5 полей через табуляцию или строка описания с отступом</div>
     </div><span></span>
   </div>`;
 }
