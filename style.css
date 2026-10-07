@@ -262,3 +262,15 @@ button { font: inherit; cursor: pointer; }
   font: 12px/1.5 var(--mono); color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere;
 }
 .link code { font-size: 12px; }
+
+.assign { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 8px; font-size: 13px; }
+.assign-main { display: inline-flex; gap: 6px; align-items: center; }
+.assign input { width: 140px; padding: 4px 8px; font-size: 12.5px; border-radius: 8px; background: var(--card); }
+.assign input.bad { border-color: var(--err); box-shadow: 0 0 0 3px var(--err-soft); }
+.btn.sm { padding: 4px 10px; font-size: 12.5px; background: var(--card); }
+.assign .btn.ghost[data-assign="main"]:hover { color: var(--ok); border-color: var(--ok); }
+.assign .btn.ghost[data-assign="test"]:hover { color: var(--warn); border-color: var(--warn); }
+.msg .pill.manual { color: var(--accent); background: var(--accent-soft); display: inline-flex; gap: 4px; align-items: center; }
+.msg .pill.manual .tag { font-size: 11px; }
+.msg .pill.manual button { border: 0; background: none; color: inherit; padding: 0 0 0 2px; font-size: 13px; line-height: 1; opacity: .7; }
+.msg .pill.manual button:hover { opacity: 1; }

@@ -100,7 +100,13 @@ export function compareTasks(a, b) {
   return pa.localeCompare(pb) || Number(na) - Number(nb);
 }
 
-export function analyze(text) {
+// Pulls task ids out of free text: "abc-1, [ABC-2]" → ['ABC-1', 'ABC-2'].
+export function parseTasks(text) {
+  return [...new Set([...text.matchAll(/([A-Za-z]+)-(\d+)/g)].map((t) => `${t[1].toUpperCase()}-${t[2]}`))];
+}
+
+// overrides: hash → { category, tasks? } — manual decisions for commits the rules call unknown.
+export function analyze(text, overrides = new Map()) {
   const commits = [];
   const invalid = [];
   text.split(/\r?\n/).forEach((raw, i) => {
@@ -116,7 +122,10 @@ export function analyze(text) {
       return;
     }
     const { message, reapplied } = unwrapReapply(parsed.subject);
-    commits.push({ ...parsed, body: '', message, reapplied, ...classify(message) });
+    let cls = classify(message);
+    const manual = cls.category === 'unknown' ? overrides.get(parsed.hash) : undefined;
+    if (manual) cls = { category: manual.category, reason: 'manual', tasks: manual.tasks ?? [], manual: true };
+    commits.push({ ...parsed, body: '', message, reapplied, ...cls });
   });
 
   linkReverts(commits);

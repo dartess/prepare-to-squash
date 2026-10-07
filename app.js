@@ -1,4 +1,4 @@
-import { analyze, buildCommand } from './parser.js';
+import { analyze, buildCommand, parseTasks } from './parser.js';
 
 const $ = (id) => document.getElementById(id);
 const el = {
@@ -15,6 +15,8 @@ const store = {
 
 let filter = 'all';
 let lastAnalysis = null;
+// Manual categories for unknown commits: hash → { category, tasks }. Lives only in this tab.
+const overrides = new Map();
 
 const esc = (s) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const branch = (input) => input.value.trim();
@@ -98,16 +100,54 @@ function revertInfo(c) {
   return lines.join('');
 }
 
+function assignControls(c) {
+  const guess = parseTasks(c.message).join(' ');
+  return `<div class="assign" data-hash="${esc(c.hash)}">
+    <span class="muted">Отнести к:</span>
+    <button class="btn ghost sm" type="button" data-assign="skip">skip</button>
+    <button class="btn ghost sm" type="button" data-assign="test">test</button>
+    <span class="assign-main">
+      <input type="text" data-tasks placeholder="ABC-123" value="${esc(guess)}" spellcheck="false" autocomplete="off" aria-label="Задачи для main">
+      <button class="btn ghost sm" type="button" data-assign="main">main</button>
+    </span>
+  </div>`;
+}
+
+function assign(box, category) {
+  const hash = box.dataset.hash;
+  if (category === 'main') {
+    const input = box.querySelector('[data-tasks]');
+    const tasks = parseTasks(input.value);
+    if (!tasks.length) {
+      input.classList.add('bad');
+      input.focus();
+      toast('Укажи задачу, например ABC-123');
+      return;
+    }
+    overrides.set(hash, { category, tasks });
+  } else {
+    overrides.set(hash, { category });
+  }
+  runAnalysis();
+  // Keep the flow going: focus the next unresolved commit, if any.
+  el.list.querySelector('.assign [data-tasks]')?.focus({ preventScroll: true });
+}
+
 function commitRow(c) {
   const pills = [];
   if (c.reapplied) {
     pills.push(`<span class="pill" title="${esc(c.subject)}">reapply${c.reapplied > 1 ? ` ×${c.reapplied}` : ''}</span>`);
   }
   if (c.revertedBy) pills.push(c.undone ? '<span class="pill reverted">reverted</span>' : '<span class="pill">reverted → reapplied</span>');
+  if (c.manual) {
+    const tasks = c.tasks.length ? ` <span class="tag">${c.tasks.map((t) => `[${esc(t)}]`).join('')}</span>` : '';
+    pills.push(`<span class="pill manual">вручную${tasks}<button type="button" data-unassign="${esc(c.hash)}" title="Вернуть в unknown">×</button></span>`);
+  }
   return `<div class="row ${c.category}${c.undone ? ' undone' : ''}" data-hash="${esc(c.hash)}">
     <span class="badge ${c.category}">${c.category}</span>
     <div class="msg"><span class="text">${highlight(c.message)}</span>${pills.join('')}
       ${revertInfo(c)}
+      ${c.category === 'unknown' ? assignControls(c) : ''}
       ${c.body ? `<details class="body"><summary>описание</summary><pre>${esc(c.body)}</pre></details>` : ''}
       <div class="meta">
         <button class="hash" type="button" data-copy="${esc(c.hash)}" title="Скопировать полный хэш">${esc(c.hash.slice(0, 10))}</button>
@@ -205,7 +245,7 @@ function runAnalysis() {
     lastAnalysis = null;
     return;
   }
-  lastAnalysis = analyze(text);
+  lastAnalysis = analyze(text, overrides);
   lastAnalysis.byHash = new Map(lastAnalysis.commits.map((c) => [c.hash, c]));
   // Everything involved in a revert chain: reverts themselves and what they undo.
   lastAnalysis.reverted = lastAnalysis.commits.filter((c) => c.revertedBy || c.revertsSubject !== undefined);
@@ -279,6 +319,21 @@ el.list.addEventListener('click', (e) => {
   if (btn) copy(btn.dataset.copy, null, 'Хэш скопирован');
   const link = e.target.closest('[data-jump]');
   if (link) jumpTo(link.dataset.jump);
+  const assignBtn = e.target.closest('[data-assign]');
+  if (assignBtn) assign(assignBtn.closest('.assign'), assignBtn.dataset.assign);
+  const unassign = e.target.closest('[data-unassign]');
+  if (unassign) {
+    overrides.delete(unassign.dataset.unassign);
+    runAnalysis();
+  }
+});
+el.list.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' || !e.target.matches('[data-tasks]')) return;
+  e.preventDefault();
+  assign(e.target.closest('.assign'), 'main');
+});
+el.list.addEventListener('input', (e) => {
+  if (e.target.matches('[data-tasks]')) e.target.classList.remove('bad');
 });
 
 function jumpTo(hash) {

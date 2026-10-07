@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { analyze, buildCommand, classify, parseLine, unwrapReapply } from '../parser.js';
+import { analyze, buildCommand, classify, parseLine, parseTasks, unwrapReapply } from '../parser.js';
 
 const T = (h, s) => `${h}\tJohn Doe\tjohn@example.com\t2026-05-22T15:17:01+04:00\t${s}`;
 const H = '0123456789abcdef0123456789abcdef01234567';
@@ -113,4 +113,24 @@ test('body lines attach to the commit; revert hash from body wins over subject',
 
 test('indented line before any commit is invalid', () => {
   assert.equal(analyze('    orphan body').invalid.length, 1);
+});
+
+test('manual overrides resolve unknown commits only', () => {
+  const r0 = analyze([T(H, '[ABC-1] a'), T('1'.repeat(40), 'fix typo'), T('2'.repeat(40), 'misc')].join('\n'));
+  assert.equal(r0.unknown.length, 2);
+  const overrides = new Map([
+    ['1'.repeat(40), { category: 'main', tasks: ['XYZ-7'] }],
+    ['2'.repeat(40), { category: 'skip' }],
+    [H, { category: 'skip' }], // not unknown — ignored
+  ]);
+  const r = analyze([T(H, '[ABC-1] a'), T('1'.repeat(40), 'fix typo'), T('2'.repeat(40), 'misc')].join('\n'), overrides);
+  assert.equal(r.ok, true);
+  assert.equal(r.result, '[ABC-1][XYZ-7]');
+  assert.equal(r.commits[1].manual, true);
+  assert.equal(r.commits[0].category, 'main');
+});
+
+test('parseTasks', () => {
+  assert.deepEqual(parseTasks('abc-1, [ABC-2] abc-1'), ['ABC-1', 'ABC-2']);
+  assert.deepEqual(parseTasks('nothing'), []);
 });
