@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prepare to Squash</title>
+  <meta name="description" content="Собирает список задач из коммитов между двумя ветками">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%235b5bd6'/><path d='M9 9h14M9 16h14M9 23h8' stroke='white' stroke-width='3' stroke-linecap='round'/></svg>">
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <main class="wrap">
+    <header class="top">
+      <div class="logo" aria-hidden="true">
+        <svg viewBox="0 0 32 32"><path d="M9 9h14M9 16h14M9 23h8" /></svg>
+      </div>
+      <div>
+        <h1>Prepare to Squash</h1>
+        <p class="muted">Коммиты из источника, которых нет в цели → строка задач для squash-коммита</p>
+      </div>
+    </header>
+
+    <section class="card step" id="step-branches">
+      <div class="step-head"><span class="num">1</span><h2>Ветки</h2></div>
+      <div class="branches">
+        <label class="field">
+          <span>Цель <em>куда переносим</em></span>
+          <input id="target" type="text" placeholder="target-branch" spellcheck="false" autocomplete="off" autocapitalize="off">
+        </label>
+        <button class="icon-btn swap" id="swap" type="button" title="Поменять местами" aria-label="Поменять местами">
+          <svg viewBox="0 0 24 24"><path d="M7 7h11l-3-3M17 17H6l3 3" /></svg>
+        </button>
+        <label class="field">
+          <span>Источник <em>откуда берём коммиты</em></span>
+          <input id="source" type="text" placeholder="source-branch" spellcheck="false" autocomplete="off" autocapitalize="off">
+        </label>
+      </div>
+    </section>
+
+    <section class="card step" id="step-command">
+      <div class="step-head"><span class="num">2</span><h2>Выполни в репозитории</h2></div>
+      <div class="cmd" id="cmd-box">
+        <code id="command"></code>
+        <button class="btn" id="copy-command" type="button">Копировать</button>
+      </div>
+      <p class="hint muted" id="cmd-hint">Укажи обе ветки, чтобы получить команду.</p>
+    </section>
+
+    <section class="card step" id="step-input">
+      <div class="step-head">
+        <span class="num">3</span><h2>Вставь вывод</h2>
+        <div class="spacer"></div>
+        <button class="btn ghost" id="paste" type="button">Вставить из буфера</button>
+        <button class="btn ghost" id="clear" type="button">Очистить</button>
+      </div>
+      <textarea id="log" spellcheck="false" placeholder="hash   author   email   date   [ABC-123] message"></textarea>
+    </section>
+
+    <section class="card result" id="result" hidden>
+      <div class="result-main" id="result-main"></div>
+      <div class="test-warning" id="test-warning" role="alert" hidden></div>
+      <div class="chips" id="chips" role="tablist"></div>
+      <div class="list" id="list"></div>
+    </section>
+
+    <footer class="muted foot">
+      <details>
+        <summary>Правила разбора</summary>
+        <ul>
+          <li><code>Reapply "…"</code> разворачивается до внутреннего сообщения (в том числе вложенные).</li>
+          <li><code>[AUTOCOMMIT]…</code>, <code>Revert…</code> → <b>skip</b></li>
+          <li><code>[test] …</code> → <b>test</b>: в строку задач не попадают, но выводится предупреждение.</li>
+          <li><code>[ABC-123]…</code> (можно несколько подряд) → <b>main</b></li>
+          <li>Всё остальное → <b>unknown</b>: результат не выдаётся, пока такие коммиты есть.</li>
+        </ul>
+      </details>
+    </footer>
+  </main>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
