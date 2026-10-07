@@ -63,10 +63,6 @@ function renderCommand() {
 
   store.set('target', target);
   store.set('source', source);
-  const url = new URL(location.href);
-  target ? url.searchParams.set('target', target) : url.searchParams.delete('target');
-  source ? url.searchParams.set('source', source) : url.searchParams.delete('source');
-  history.replaceState(null, '', url);
 }
 
 // ---------- step 3: analysis ----------
@@ -231,6 +227,13 @@ const params = new URLSearchParams(location.search);
 el.target.value = params.get('target') ?? store.get('target');
 el.source.value = params.get('source') ?? store.get('source');
 el.log.value = store.get('log');
+// ?target=&source= only prefill the form once; the address stays clean afterwards.
+if (params.has('target') || params.has('source')) {
+  const url = new URL(location.href);
+  url.searchParams.delete('target');
+  url.searchParams.delete('source');
+  history.replaceState(null, '', url);
+}
 
 el.target.addEventListener('input', renderCommand);
 el.source.addEventListener('input', renderCommand);
